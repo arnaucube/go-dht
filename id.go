@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 )
@@ -30,6 +31,10 @@ func IDFromString(s string) (ID, error) {
 	var id ID
 	copy(id[:], b[:B])
 	return id, nil
+}
+
+func (idA ID) Equal(idB ID) bool {
+	return bytes.Equal(idA[:], idB[:])
 }
 
 // Cmp returns true if idA > idB

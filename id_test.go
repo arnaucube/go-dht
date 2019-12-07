@@ -7,8 +7,12 @@ import (
 )
 
 func TestNewID(t *testing.T) {
-	_, err := NewID()
-	assert.Nil(t, err)
+	// get some IDs
+	// for i := 0; i < 10; i++ {
+	//         id, err := NewID()
+	//         assert.Nil(t, err)
+	//         fmt.Println(id)
+	// }
 
 	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
 	assert.Nil(t, err)
