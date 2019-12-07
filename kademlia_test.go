@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var debug = true
+var debug = false
 
 func TestCountZeros(t *testing.T) {
 	zeroes := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -51,10 +51,7 @@ func TestNodeKBucket(t *testing.T) {
 	assert.Equal(t, 159, d)
 }
 
-func TestUpdate(t *testing.T) {
-	nodeA, err := LoadNode("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
-	assert.Nil(t, err)
-
+func prepareTestListedNodes() []ListedNode {
 	lnIDs := []string{
 		"c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b",
 		"420bfebd44fc62615253224328f40f29c9b225fa",
@@ -76,13 +73,35 @@ func TestUpdate(t *testing.T) {
 		"0750931c40a52a2facd220a02851f7d34f95e1fa",
 		"ebfba615ac50bcd0f5c2420741d032e885abf576",
 	}
+	var lns []ListedNode
 	for i := 0; i < len(lnIDs); i++ {
 		idI, err := IDFromString(lnIDs[i])
-		assert.Nil(t, err)
+		if err != nil {
+			panic(err)
+		}
 		lnI := ListedNode{
 			ID:   idI,
 			Addr: "",
 		}
+		lns = append(lns, lnI)
+	}
+	return lns
+}
+
+func TestMoveToBottom(t *testing.T) {
+	lns := prepareTestListedNodes()
+	movedElem := lns[3]
+	assert.NotEqual(t, movedElem, lns[len(lns)-1])
+	lns = moveToBottom(lns, 3)
+	assert.Equal(t, movedElem, lns[len(lns)-1])
+}
+
+func TestUpdate(t *testing.T) {
+	nodeA, err := LoadNode("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
+	assert.Nil(t, err)
+
+	lns := prepareTestListedNodes()
+	for _, lnI := range lns {
 		nodeA.Update(lnI)
 	}
 

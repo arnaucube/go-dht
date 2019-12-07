@@ -75,18 +75,27 @@ func (n *Node) Update(o ListedNode) {
 	k := n.KBucket(o.ID)
 	kb := n.KBuckets[k]
 	if len(kb) >= KBucketSize {
-		// TODO ping the kb[0], and if no response, delete it, and add the current o (ID)
+		// if n.KBuckets[k] is alrady full, perform ping of the first element
+		n.Ping(k, o)
 		return
 	}
 	// check that is not already in the list
-	exist, _ := existsInListedNodes(n.KBuckets[k], o)
+	exist, pos := existsInListedNodes(n.KBuckets[k], o)
 	if exist {
-		// update position to the bottom
+		// update position of o to the bottom
+		n.KBuckets[k] = moveToBottom(n.KBuckets[k], pos)
 		return
 	}
 	// not exists, add it to the kBucket
 	n.KBuckets[k] = append(n.KBuckets[k], o)
 	return
+}
+
+func (n *Node) Ping(k int, o ListedNode) {
+	// TODO when rpc layer is done
+	// ping the n.KBuckets[k][0] (using goroutine)
+	// if no response (timeout), delete it and add 'o'
+	// n.KBuckets[k][0] = o
 }
 
 func existsInListedNodes(lns []ListedNode, ln ListedNode) (bool, int) {
@@ -96,4 +105,11 @@ func existsInListedNodes(lns []ListedNode, ln ListedNode) (bool, int) {
 		}
 	}
 	return false, 0
+}
+
+func moveToBottom(kb []ListedNode, k int) []ListedNode {
+	e := kb[k]
+	kb = append(kb[:k], kb[k+1:]...)
+	kb = append(kb[:], e)
+	return kb
 }
