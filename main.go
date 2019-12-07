@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	log.SetLevel(log.DebugLevel)
+
 	app := cli.NewApp()
 	app.Name = "go-dht"
 	app.Version = "0.0.1-alpha"

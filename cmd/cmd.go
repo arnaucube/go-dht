@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"go-dht/config"
 	"go-dht/node"
 
@@ -20,6 +21,7 @@ func cmdStart(c *cli.Context) error {
 	if err := config.MustRead(c); err != nil {
 		return err
 	}
+	fmt.Println(config.C)
 
 	var n node.Node
 	var err error
@@ -36,5 +38,6 @@ func cmdStart(c *cli.Context) error {
 		}
 		log.Info("New node created with ID: ", n.ID())
 	}
-	return nil
+	err = n.Start()
+	return err
 }

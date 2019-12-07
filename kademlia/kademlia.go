@@ -3,6 +3,8 @@ package kademlia
 import (
 	"math/bits"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -14,6 +16,7 @@ const (
 type ListedNode struct {
 	ID   ID
 	Addr string
+	Port string
 }
 
 type Kademlia struct {
@@ -60,6 +63,7 @@ func (kad *Kademlia) Update(o ListedNode) {
 	kb := kad.KBuckets[k]
 	if len(kb) >= KBucketSize {
 		// if n.KBuckets[k] is alrady full, perform ping of the first element
+		log.Debug("node.KBuckets[k] already full, performing ping to node.KBuckets[0]")
 		kad.Ping(k, o)
 		return
 	}
@@ -68,10 +72,12 @@ func (kad *Kademlia) Update(o ListedNode) {
 	if exist {
 		// update position of o to the bottom
 		kad.KBuckets[k] = moveToBottom(kad.KBuckets[k], pos)
+		log.Debug("ListedNode already exists, moved to bottom")
 		return
 	}
 	// not exists, add it to the kBucket
 	kad.KBuckets[k] = append(kad.KBuckets[k], o)
+	log.Debug("ListedNode not exists, added to the bottom")
 	return
 }
 

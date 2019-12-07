@@ -1,6 +1,8 @@
 package kademlia
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +19,26 @@ func TestNewID(t *testing.T) {
 	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
 	assert.Nil(t, err)
 	assert.Equal(t, "0fd85ddddf15aeec2d5d8b01b013dbca030a18d7", idA.String())
+}
+
+func TestIDMarshalers(t *testing.T) {
+	id, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
+	assert.Nil(t, err)
+
+	idStr, err := json.Marshal(id)
+	assert.Nil(t, err)
+	assert.Equal(t, "\"0fd85ddddf15aeec2d5d8b01b013dbca030a18d7\"", string(idStr))
+	fmt.Println("idStr", string(idStr))
+
+	var idParsed ID
+	err = json.Unmarshal(idStr, &idParsed)
+	assert.Nil(t, err)
+	assert.Equal(t, id, idParsed)
+
+	var idParsed2 ID
+	err = json.Unmarshal([]byte("\"0fd85ddddf15aeec2d5d8b01b013dbca030a18d7\""), &idParsed2)
+	assert.Nil(t, err)
+	assert.Equal(t, id, idParsed2)
 }
 
 func TestIDCmp(t *testing.T) {

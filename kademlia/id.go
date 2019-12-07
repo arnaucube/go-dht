@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 )
 
 type ID [B]byte
@@ -21,6 +22,23 @@ func NewID() (ID, error) {
 
 func (id ID) String() string {
 	return hex.EncodeToString(id[:])
+}
+
+func (id ID) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(id[:])), nil
+}
+
+func (id *ID) UnmarshalText(data []byte) error {
+	fmt.Println("UNMARSHAL")
+	fmt.Println("d", string(data))
+	var err error
+	var idFromStr ID
+	idFromStr, err = IDFromString(string(data))
+	if err != nil {
+		return err
+	}
+	copy(id[:], idFromStr[:])
+	return nil
 }
 
 func IDFromString(s string) (ID, error) {
