@@ -1,4 +1,4 @@
-package main
+package kademlia
 
 import (
 	"fmt"
@@ -37,17 +37,18 @@ func TestCountZeros(t *testing.T) {
 	assert.Equal(t, 159-22, kBucketByDistance(b))
 }
 
-func TestNodeKBucket(t *testing.T) {
-	node, err := LoadNode("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
+func TestKBucket(t *testing.T) {
+	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
 	assert.Nil(t, err)
+	kademlia := NewKademliaTable(idA)
 
-	d := node.KBucket(node.ID)
+	d := kademlia.KBucket(kademlia.ID)
 	assert.Equal(t, 0, d) // same node should have distance 0
 
 	idB, err := IDFromString("c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b")
 	assert.Nil(t, err)
 
-	d = node.KBucket(idB)
+	d = kademlia.KBucket(idB)
 	assert.Equal(t, 159, d)
 }
 
@@ -97,20 +98,21 @@ func TestMoveToBottom(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	nodeA, err := LoadNode("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
+	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
 	assert.Nil(t, err)
+	kademlia := NewKademliaTable(idA)
 
 	lns := prepareTestListedNodes()
 	for _, lnI := range lns {
-		nodeA.Update(lnI)
+		kademlia.Update(lnI)
 	}
 
 	if debug {
-		fmt.Println(nodeA)
+		fmt.Println(kademlia)
 	}
 
-	assert.Equal(t, len(nodeA.KBuckets[0]), 1)
-	assert.Equal(t, len(nodeA.KBuckets[1]), 1)
-	assert.Equal(t, len(nodeA.KBuckets[158]), 4)
-	assert.Equal(t, len(nodeA.KBuckets[159]), 5)
+	assert.Equal(t, len(kademlia.KBuckets[0]), 1)
+	assert.Equal(t, len(kademlia.KBuckets[1]), 1)
+	assert.Equal(t, len(kademlia.KBuckets[158]), 4)
+	assert.Equal(t, len(kademlia.KBuckets[159]), 5)
 }

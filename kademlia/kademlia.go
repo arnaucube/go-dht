@@ -1,4 +1,4 @@
-package main
+package kademlia
 
 import (
 	"math/bits"
@@ -16,14 +16,20 @@ type ListedNode struct {
 	Addr string
 }
 
-type Node struct {
+type Kademlia struct {
 	ID       ID
 	KBuckets [B * 8][]ListedNode
 }
 
-func (n Node) String() string {
-	r := "Node ID: " + n.ID.String() + ", KBuckets:\n"
-	for i, kb := range n.KBuckets {
+func NewKademliaTable(id ID) *Kademlia {
+	return &Kademlia{
+		ID: id,
+	}
+}
+
+func (kad Kademlia) String() string {
+	r := "Node ID: " + kad.ID.String() + ", KBuckets:\n"
+	for i, kb := range kad.KBuckets {
 		if len(kb) > 0 {
 			r += "	KBucket " + strconv.Itoa(i) + "\n"
 			for _, e := range kb {
@@ -34,30 +40,8 @@ func (n Node) String() string {
 	return r
 }
 
-func NewNode() (Node, error) {
-	// TODO if node already has id, import it
-	id, err := NewID()
-	if err != nil {
-		return Node{}, err
-	}
-
-	var n Node
-	n.ID = id
-	return n, nil
-}
-
-func LoadNode(idStr string) (Node, error) {
-	id, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
-	if err != nil {
-		return Node{}, err
-	}
-	var n Node
-	n.ID = id
-	return n, nil
-}
-
-func (n Node) KBucket(o ID) int {
-	d := n.ID.Distance(o)
+func (kad Kademlia) KBucket(o ID) int {
+	d := kad.ID.Distance(o)
 	return kBucketByDistance(d[:])
 
 }
@@ -71,27 +55,27 @@ func kBucketByDistance(b []byte) int {
 	return (B*8 - 1) - (B*8 - 1)
 }
 
-func (n *Node) Update(o ListedNode) {
-	k := n.KBucket(o.ID)
-	kb := n.KBuckets[k]
+func (kad *Kademlia) Update(o ListedNode) {
+	k := kad.KBucket(o.ID)
+	kb := kad.KBuckets[k]
 	if len(kb) >= KBucketSize {
 		// if n.KBuckets[k] is alrady full, perform ping of the first element
-		n.Ping(k, o)
+		kad.Ping(k, o)
 		return
 	}
 	// check that is not already in the list
-	exist, pos := existsInListedNodes(n.KBuckets[k], o)
+	exist, pos := existsInListedNodes(kad.KBuckets[k], o)
 	if exist {
 		// update position of o to the bottom
-		n.KBuckets[k] = moveToBottom(n.KBuckets[k], pos)
+		kad.KBuckets[k] = moveToBottom(kad.KBuckets[k], pos)
 		return
 	}
 	// not exists, add it to the kBucket
-	n.KBuckets[k] = append(n.KBuckets[k], o)
+	kad.KBuckets[k] = append(kad.KBuckets[k], o)
 	return
 }
 
-func (n *Node) Ping(k int, o ListedNode) {
+func (kad *Kademlia) Ping(k int, o ListedNode) {
 	// TODO when rpc layer is done
 	// ping the n.KBuckets[k][0] (using goroutine)
 	// if no response (timeout), delete it and add 'o'
