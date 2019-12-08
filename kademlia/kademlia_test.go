@@ -40,9 +40,9 @@ func TestCountZeros(t *testing.T) {
 func TestKBucket(t *testing.T) {
 	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
 	assert.Nil(t, err)
-	kademlia := NewKademliaTable(idA)
+	kademlia := NewKademliaTable(idA, "127.0.0.1", "5000")
 
-	d := kademlia.KBucket(kademlia.ID)
+	d := kademlia.KBucket(kademlia.N.ID)
 	assert.Equal(t, 0, d) // same node should have distance 0
 
 	idB, err := IDFromString("c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b")
@@ -100,7 +100,7 @@ func TestMoveToBottom(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
 	assert.Nil(t, err)
-	kademlia := NewKademliaTable(idA)
+	kademlia := NewKademliaTable(idA, "127.0.0.1", "5000")
 
 	lns := prepareTestListedNodes()
 	for _, lnI := range lns {

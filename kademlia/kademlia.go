@@ -2,6 +2,7 @@ package kademlia
 
 import (
 	"math/bits"
+	"net/rpc"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -20,18 +21,23 @@ type ListedNode struct {
 }
 
 type Kademlia struct {
-	ID       ID
+	// N is this node data
+	N        ListedNode
 	KBuckets [B * 8][]ListedNode
 }
 
-func NewKademliaTable(id ID) *Kademlia {
+func NewKademliaTable(id ID, addr, port string) *Kademlia {
 	return &Kademlia{
-		ID: id,
+		N: ListedNode{
+			ID:   id,
+			Addr: addr,
+			Port: port,
+		},
 	}
 }
 
 func (kad Kademlia) String() string {
-	r := "Node ID: " + kad.ID.String() + ", KBuckets:\n"
+	r := "Node ID: " + kad.N.ID.String() + ", KBuckets:\n"
 	for i, kb := range kad.KBuckets {
 		if len(kb) > 0 {
 			r += "	KBucket " + strconv.Itoa(i) + "\n"
@@ -44,7 +50,7 @@ func (kad Kademlia) String() string {
 }
 
 func (kad Kademlia) KBucket(o ID) int {
-	d := kad.ID.Distance(o)
+	d := kad.N.ID.Distance(o)
 	return kBucketByDistance(d[:])
 
 }
@@ -63,8 +69,8 @@ func (kad *Kademlia) Update(o ListedNode) {
 	kb := kad.KBuckets[k]
 	if len(kb) >= KBucketSize {
 		// if n.KBuckets[k] is alrady full, perform ping of the first element
-		log.Debug("node.KBuckets[k] already full, performing ping to node.KBuckets[0]")
-		kad.Ping(k, o)
+		log.Info("node.KBuckets[k] already full, performing ping to node.KBuckets[0]")
+		kad.PingOldNode(k, o)
 		return
 	}
 	// check that is not already in the list
@@ -72,20 +78,57 @@ func (kad *Kademlia) Update(o ListedNode) {
 	if exist {
 		// update position of o to the bottom
 		kad.KBuckets[k] = moveToBottom(kad.KBuckets[k], pos)
-		log.Debug("ListedNode already exists, moved to bottom")
+		log.Info("ListedNode already exists, moved to bottom")
 		return
 	}
 	// not exists, add it to the kBucket
 	kad.KBuckets[k] = append(kad.KBuckets[k], o)
-	log.Debug("ListedNode not exists, added to the bottom")
+	log.Info("ListedNode not exists, added to the bottom")
 	return
 }
 
-func (kad *Kademlia) Ping(k int, o ListedNode) {
+func (kad *Kademlia) PingOldNode(k int, o ListedNode) {
 	// TODO when rpc layer is done
 	// ping the n.KBuckets[k][0] (using goroutine)
 	// if no response (timeout), delete it and add 'o'
 	// n.KBuckets[k][0] = o
+}
+
+func (kad *Kademlia) CallPing(o ListedNode) error {
+	client, err := rpc.DialHTTP("tcp", o.Addr+":"+o.Port)
+	if err != nil {
+		return err
+	}
+	ln := ListedNode{
+		ID:   kad.N.ID,
+		Addr: kad.N.Addr,
+		Port: kad.N.Port,
+	}
+	var reply ListedNode
+	err = client.Call("Node.Ping", ln, &reply)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (kad *Kademlia) CallPong(o ListedNode) error {
+	client, err := rpc.DialHTTP("tcp", o.Addr+":"+o.Port)
+	if err != nil {
+		return err
+	}
+	ln := ListedNode{
+		ID:   kad.N.ID,
+		Addr: kad.N.Addr,
+		Port: kad.N.Port,
+	}
+	var reply bool
+	err = client.Call("Node.Pong", ln, &reply)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func existsInListedNodes(lns []ListedNode, ln ListedNode) (bool, int) {

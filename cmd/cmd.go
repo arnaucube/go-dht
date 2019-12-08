@@ -18,6 +18,11 @@ var NodeCommands = []cli.Command{
 }
 
 func cmdStart(c *cli.Context) error {
+	if c.GlobalBool("debug") {
+		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
+	}
+
 	if err := config.MustRead(c); err != nil {
 		return err
 	}
