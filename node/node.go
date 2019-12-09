@@ -1,9 +1,11 @@
 package node
 
 import (
+	"encoding/hex"
 	"fmt"
 	"go-dht/config"
 	"go-dht/kademlia"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -108,15 +110,64 @@ func (n *Node) Pong(ln kademlia.ListedNode, ack *bool) error {
 func (n *Node) Store(data []byte, ack *bool) error {
 	log.Info("[rpc] STORE")
 
+	h := kademlia.HashData(data)
+	if n.kademlia.KBucket(h) != 0 {
+		*ack = false
+		log.Warning("[STORE] data not for this node")
+		return nil
+	}
+	err := ioutil.WriteFile(config.C.Storage+"/"+hex.EncodeToString(h[:]), data, 0644)
+	if err != nil {
+		*ack = false
+		log.Warning("[STORE]", err)
+		return err
+	}
+	*ack = true
 	return nil
 }
 
-func (n *Node) FindNode() {
+func (n *Node) FindNode(ln kademlia.ListedNode, lns *[]kademlia.ListedNode) error {
 	log.Info("[rpc] FIND_NODE")
-
+	// k := n.kademlia.KBucket(ln.ID)
+	k, err := n.kademlia.FindClosestKBucket(ln.ID)
+	if err != nil {
+		*lns = []kademlia.ListedNode{}
+		return nil
+	}
+	log.Info("[FIND_NODE] k", k)
+	bucket := n.kademlia.KBuckets[k]
+	*lns = bucket
+	return nil
 }
 
-func (n *Node) FindValue() {
+type FindValueResp struct {
+	Value []byte
+	Lns   []kademlia.ListedNode
+}
+
+func (n *Node) FindValue(id kademlia.ID, resp *FindValueResp) error {
 	log.Info("[rpc] FIND_VALUE")
+	// first check if value is in this node storage
+	f, err := ioutil.ReadFile(config.C.Storage + "/" + id.String())
+	if err == nil {
+		// value exists, return it
+		*resp = FindValueResp{
+			Value: f,
+		}
+		return nil
+	}
+
+	// k := n.kademlia.KBucket(id)
+	k, err := n.kademlia.FindClosestKBucket(id)
+	if err != nil {
+		*resp = FindValueResp{}
+		return nil
+	}
+	log.Info("[FIND_VALUE] k", k)
+	// bucket := n.kademlia.KBuckets[k]
+	*resp = FindValueResp{
+		Lns: n.kademlia.KBuckets[k],
+	}
+	return nil
 
 }

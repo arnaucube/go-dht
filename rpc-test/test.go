@@ -1,13 +1,145 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"go-dht/kademlia"
+	"go-dht/node"
 	"log"
 	"net/rpc"
+	"strconv"
 )
 
 // Utility to test the Node RPC methods
+
+func main() {
+	pingFlag := flag.Bool("ping", false, "test Ping")
+	findnodeFlag := flag.Bool("findnode", false, "test FindNode")
+	findvalueFlag := flag.Bool("findvalue", false, "test FindValue")
+	storeFlag := flag.Bool("store", false, "test Store")
+	flag.Parse()
+
+	if *pingFlag {
+		testPing()
+	}
+	if *findnodeFlag {
+		testFindNode()
+	}
+	if *findvalueFlag {
+		testFindValue()
+	}
+	if *storeFlag {
+		testStore()
+	}
+}
+
+func testPing() {
+	lns := prepareTestListedNodes()
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:5000")
+	if err != nil {
+		log.Fatal("Connection error: ", err)
+	}
+
+	var reply kademlia.ListedNode
+	for _, ln := range lns {
+		err = client.Call("Node.Ping", ln, &reply)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(reply)
+	}
+}
+
+func testFindNode() {
+	// existing node
+	id, err := kademlia.IDFromString("1ff734fb9897600ca54a9c55ace2d22a51afb610")
+	if err != nil {
+		panic(err)
+	}
+	ln := kademlia.ListedNode{
+		ID:   id,
+		Addr: "",
+		Port: "",
+	}
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:5000")
+	if err != nil {
+		log.Fatal("Connection error: ", err)
+	}
+
+	var reply []kademlia.ListedNode
+	err = client.Call("Node.FindNode", ln, &reply)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(reply)
+
+	// find non existing node, to get a closer one
+	id, err = kademlia.IDFromString("1ff734fb9897600ca54a9c55ace2d22a51aaaaaa")
+	if err != nil {
+		panic(err)
+	}
+	ln = kademlia.ListedNode{
+		ID:   id,
+		Addr: "",
+		Port: "",
+	}
+
+	var reply2 []kademlia.ListedNode
+	err = client.Call("Node.FindNode", ln, &reply2)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(reply2)
+}
+
+func testFindValue() {
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:5002")
+	if err != nil {
+		log.Fatal("Connection error: ", err)
+	}
+	// first store the value
+	data := []byte("test data0")
+	h := kademlia.HashData(data)
+	fmt.Println(h)
+	var reply bool
+	err = client.Call("Node.Store", data, &reply)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(reply)
+
+	// now call FIND_VALUE
+	id, err := kademlia.IDFromString("1ff734fb9897600ca54a9c55ace2d22a51afb610")
+	if err != nil {
+		panic(err)
+	}
+	var reply2 node.FindValueResp
+	err = client.Call("Node.FindValue", id, &reply2)
+	if err != nil {
+		panic(err)
+	}
+	if len(reply2.Value) == 0 {
+		panic(errors.New("expected value response on FIND_VALUE"))
+	}
+	fmt.Println("FIND_VALUE response:", string(reply2.Value))
+}
+
+func testStore() {
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:5000")
+	if err != nil {
+		log.Fatal("Connection error: ", err)
+	}
+	var reply bool
+	for i := 0; i < 10; i++ {
+		err = client.Call("Node.Store", []byte("test data"+strconv.Itoa(i)), &reply)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(reply)
+	}
+
+}
 
 func prepareTestListedNodes() []kademlia.ListedNode {
 	lnIDs := []string{
@@ -44,22 +176,4 @@ func prepareTestListedNodes() []kademlia.ListedNode {
 		lns = append(lns, lnI)
 	}
 	return lns
-}
-
-func main() {
-	lns := prepareTestListedNodes()
-
-	client, err := rpc.DialHTTP("tcp", "127.0.0.1:5000")
-	if err != nil {
-		log.Fatal("Connection error: ", err)
-	}
-
-	var reply kademlia.ListedNode
-	for _, ln := range lns {
-		err = client.Call("Node.Ping", ln, &reply)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(reply)
-	}
 }

@@ -13,6 +13,7 @@ type Config struct {
 	Port          string
 	KnownNodesStr []KnownNodeStr        `mapstructure:"knownnodes"`
 	KnownNodes    []kademlia.ListedNode `mapstructure:"-"`
+	Storage       string
 }
 
 type KnownNodeStr struct {

@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 var debug = false
+
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
 
 func TestCountZeros(t *testing.T) {
 	zeroes := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -15,26 +20,38 @@ func TestCountZeros(t *testing.T) {
 
 	b := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	assert.Equal(t, 20, len(b))
-	assert.Equal(t, 159, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
 	b[19] = 0x00
-	assert.Equal(t, 159, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
 
 	b[0] = 0x0f
-	assert.Equal(t, 159-4, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
 
 	b[0] = 0x0c
-	assert.Equal(t, 159-4, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
 
 	b[0] = 0x00
 	b[1] = 0x00
 	b[2] = 0x0f
-	assert.Equal(t, 159-20, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
 
 	b[2] = 0x07
-	assert.Equal(t, 159-21, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
 
 	b[2] = 0x03
-	assert.Equal(t, 159-22, kBucketByDistance(b))
+	assert.Equal(t, 7, kBucketByDistance(b))
+
+	b = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	b[19] = 0x01
+	assert.Equal(t, 2, kBucketByDistance(b))
+	b[19] = 0x05
+	assert.Equal(t, 2, kBucketByDistance(b))
+
+	b[19] = 0x10
+	assert.Equal(t, 1, kBucketByDistance(b))
+
+	b[18] = 0x10
+	assert.Equal(t, 3, kBucketByDistance(b))
 }
 
 func TestKBucket(t *testing.T) {
@@ -49,7 +66,7 @@ func TestKBucket(t *testing.T) {
 	assert.Nil(t, err)
 
 	d = kademlia.KBucket(idB)
-	assert.Equal(t, 159, d)
+	assert.Equal(t, 7, d)
 }
 
 func prepareTestListedNodes() []ListedNode {
@@ -111,8 +128,55 @@ func TestUpdate(t *testing.T) {
 		fmt.Println(kademlia)
 	}
 
-	assert.Equal(t, len(kademlia.KBuckets[0]), 1)
-	assert.Equal(t, len(kademlia.KBuckets[1]), 1)
-	assert.Equal(t, len(kademlia.KBuckets[158]), 4)
-	assert.Equal(t, len(kademlia.KBuckets[159]), 5)
+	assert.Equal(t, 2, len(kademlia.KBuckets[0]))
+	assert.Equal(t, 0, len(kademlia.KBuckets[1]))
+	assert.Equal(t, 2, len(kademlia.KBuckets[2]))
+	assert.Equal(t, 0, len(kademlia.KBuckets[3]))
+	assert.Equal(t, 14, len(kademlia.KBuckets[7]))
+}
+
+func TestFindClosestKBucket(t *testing.T) {
+	idA, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d7")
+	assert.Nil(t, err)
+	kademlia := NewKademliaTable(idA, "127.0.0.1", "5000")
+
+	lns := prepareTestListedNodes()
+	for _, lnI := range lns {
+		kademlia.Update(lnI)
+	}
+
+	if debug {
+		fmt.Println(kademlia)
+	}
+
+	idB, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d5")
+	assert.Nil(t, err)
+
+	k, err := kademlia.FindClosestKBucket(idB)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, k)
+
+	idB, err = IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a1000")
+	assert.Nil(t, err)
+
+	// the theorical KBucket should be 3
+	k = kademlia.KBucket(idB)
+	assert.Equal(t, 3, k)
+
+	// while the real KBucket (as the 3 is empty), should be 2
+	k, err = kademlia.FindClosestKBucket(idB)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, k)
+
+	idB, err = IDFromString("0fd85ddddf15aeec2d5d8b01b013dbc000000000")
+	assert.Nil(t, err)
+
+	// the theorical KBucket should be 3
+	k = kademlia.KBucket(idB)
+	assert.Equal(t, 5, k)
+
+	// while the real KBucket (as the 3 is empty), should be 2
+	k, err = kademlia.FindClosestKBucket(idB)
+	assert.Nil(t, err)
+	assert.Equal(t, 7, k)
 }

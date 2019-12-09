@@ -1,7 +1,8 @@
-id: "c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b"
+id: "1ff734fb9897600ca54a9c55ace2d22a51afb610"
 addr: 127.0.0.1
 port: 5002
 knownNodes:
 - id: "0fd85ddddf15aeec2d5d8b01b013dbca030a18d7"
   addr: 127.0.0.1
   port: 5000
+storage: "tmp"

@@ -1,8 +1,8 @@
 package kademlia
 
 import (
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,6 @@ func TestIDMarshalers(t *testing.T) {
 	idStr, err := json.Marshal(id)
 	assert.Nil(t, err)
 	assert.Equal(t, "\"0fd85ddddf15aeec2d5d8b01b013dbca030a18d7\"", string(idStr))
-	fmt.Println("idStr", string(idStr))
 
 	var idParsed ID
 	err = json.Unmarshal(idStr, &idParsed)
@@ -55,4 +54,9 @@ func TestIDDistance(t *testing.T) {
 	idB, err := IDFromString("c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b")
 	assert.Nil(t, err)
 	assert.Equal(t, "cb55d68e04fa18e5c0131fd236ce80e8ecc1348c", idA.Distance(idB).String())
+}
+
+func TestHashData(t *testing.T) {
+	h := HashData([]byte("test data"))
+	assert.Equal(t, "916f0027a575074ce72a331777c3478d6513f786", hex.EncodeToString(h[:]))
 }

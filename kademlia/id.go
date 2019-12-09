@@ -3,8 +3,8 @@ package kademlia
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 )
 
 type ID [B]byte
@@ -29,8 +29,6 @@ func (id ID) MarshalText() ([]byte, error) {
 }
 
 func (id *ID) UnmarshalText(data []byte) error {
-	fmt.Println("UNMARSHAL")
-	fmt.Println("d", string(data))
 	var err error
 	var idFromStr ID
 	idFromStr, err = IDFromString(string(data))
@@ -71,4 +69,11 @@ func (idA ID) Distance(idB ID) ID {
 		d[i] = idA[i] ^ idB[i]
 	}
 	return d
+}
+
+func HashData(d []byte) ID {
+	h := sha256.Sum256(d)
+	var r ID
+	copy(r[:], h[:20])
+	return r
 }

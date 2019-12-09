@@ -1,6 +1,7 @@
 package kademlia
 
 import (
+	"errors"
 	"math/bits"
 	"net/rpc"
 	"strconv"
@@ -23,7 +24,7 @@ type ListedNode struct {
 type Kademlia struct {
 	// N is this node data
 	N        ListedNode
-	KBuckets [B * 8][]ListedNode
+	KBuckets [B][]ListedNode
 }
 
 func NewKademliaTable(id ID, addr, port string) *Kademlia {
@@ -49,6 +50,22 @@ func (kad Kademlia) String() string {
 	return r
 }
 
+func (kad Kademlia) FindClosestKBucket(id ID) (int, error) {
+	kb := kad.KBucket(id)
+	if len(kad.KBuckets[kb]) != 0 {
+		return kb, nil
+	}
+	for i := 0; kb-i > 0 || kb+i < 8; i++ {
+		if len(kad.KBuckets[kb+i]) != 0 {
+			return kb + i, nil
+		}
+		if len(kad.KBuckets[kb-i]) != 0 {
+			return kb - i, nil
+		}
+	}
+	return 0, errors.New("not found")
+}
+
 func (kad Kademlia) KBucket(o ID) int {
 	d := kad.N.ID.Distance(o)
 	return kBucketByDistance(d[:])
@@ -56,9 +73,22 @@ func (kad Kademlia) KBucket(o ID) int {
 }
 
 func kBucketByDistance(b []byte) int {
+	z := countZeroes(b)
+	if z == 0 {
+		return 0
+	}
+	for i := 0; i < 8; i++ {
+		if z>>uint8(i) == 1 { // check until 1 instead of 0 to avoid one operation
+			return i
+		}
+	}
+	return 7
+}
+
+func countZeroes(b []byte) int {
 	for i := 0; i < B; i++ {
 		for a := b[i] ^ 0; a != 0; a &= a - 1 {
-			return (B-1-i)*8 + (7 - bits.TrailingZeros8(bits.Reverse8(uint8(a))))
+			return (B * 8) - (i * 8) - (8 - bits.TrailingZeros8(bits.Reverse8(uint8(a))))
 		}
 	}
 	return (B*8 - 1) - (B*8 - 1)
@@ -69,7 +99,7 @@ func (kad *Kademlia) Update(o ListedNode) {
 	kb := kad.KBuckets[k]
 	if len(kb) >= KBucketSize {
 		// if n.KBuckets[k] is alrady full, perform ping of the first element
-		log.Info("node.KBuckets[k] already full, performing ping to node.KBuckets[0]")
+		log.Debug("node.KBuckets[k] already full, performing ping to node.KBuckets[0]")
 		kad.PingOldNode(k, o)
 		return
 	}
@@ -78,12 +108,12 @@ func (kad *Kademlia) Update(o ListedNode) {
 	if exist {
 		// update position of o to the bottom
 		kad.KBuckets[k] = moveToBottom(kad.KBuckets[k], pos)
-		log.Info("ListedNode already exists, moved to bottom")
+		log.Debug("ListedNode (" + o.ID.String() + ") already exists, moved to bottom")
 		return
 	}
 	// not exists, add it to the kBucket
 	kad.KBuckets[k] = append(kad.KBuckets[k], o)
-	log.Info("ListedNode not exists, added to the bottom")
+	log.Debug("ListedNode (" + o.ID.String() + ") not exists, added to the bottom")
 	return
 }
 
@@ -109,6 +139,7 @@ func (kad *Kademlia) CallPing(o ListedNode) error {
 	if err != nil {
 		return err
 	}
+	// TODO use reply as PONG
 	return nil
 }
 
