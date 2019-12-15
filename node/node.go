@@ -44,6 +44,10 @@ func (n Node) ID() kademlia.ID {
 	return n.kademlia.N.ID
 }
 
+func (n Node) Kademlia() kademlia.Kademlia {
+	return *n.kademlia
+}
+
 func (n *Node) Start() error {
 	// rpc server
 	err := rpc.Register(n)
@@ -60,11 +64,16 @@ func (n *Node) Start() error {
 		// TMP in order to print the KBuckets of the node
 		for {
 			fmt.Println(n.kademlia)
-			time.Sleep(5 * time.Second)
+			time.Sleep(8 * time.Second)
 		}
 	}()
 
 	go n.pingKnownNodes(config.C.KnownNodes)
+	go n.kademlia.Update(kademlia.ListedNode{
+		ID:   n.ID(),
+		Addr: config.C.Addr,
+		Port: config.C.Port,
+	})
 
 	err = http.Serve(listener, nil)
 	if err != nil {
@@ -126,11 +135,12 @@ func (n *Node) Store(data []byte, ack *bool) error {
 	return nil
 }
 
-func (n *Node) FindNode(ln kademlia.ListedNode, lns *[]kademlia.ListedNode) error {
+func (n *Node) FindNode(id kademlia.ID, lns *[]kademlia.ListedNode) error {
 	log.Info("[rpc] FIND_NODE")
 	// k := n.kademlia.KBucket(ln.ID)
-	k, err := n.kademlia.FindClosestKBucket(ln.ID)
+	k, err := n.kademlia.GetClosestKBucket(id)
 	if err != nil {
+		log.Debug("[rpc] FIND_NODE ERROR: ", err)
 		*lns = []kademlia.ListedNode{}
 		return nil
 	}
@@ -158,7 +168,7 @@ func (n *Node) FindValue(id kademlia.ID, resp *FindValueResp) error {
 	}
 
 	// k := n.kademlia.KBucket(id)
-	k, err := n.kademlia.FindClosestKBucket(id)
+	k, err := n.kademlia.GetClosestKBucket(id)
 	if err != nil {
 		*resp = FindValueResp{}
 		return nil

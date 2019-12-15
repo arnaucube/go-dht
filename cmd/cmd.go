@@ -43,6 +43,15 @@ func cmdStart(c *cli.Context) error {
 		}
 		log.Info("New node created with ID: ", n.ID())
 	}
+
+	go func() {
+		admin := node.NewAdmin(n)
+		err := admin.Start()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	err = n.Start()
 	return err
 }

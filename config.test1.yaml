@@ -1,6 +1,7 @@
 id: "0fd85ddddf15aeec2d5d8b01b013dbca030a18d5"
 addr: 127.0.0.1
 port: 5001
+adminport: 6001
 knownNodes:
 - id: "0fd85ddddf15aeec2d5d8b01b013dbca030a18d7"
   addr: 127.0.0.1

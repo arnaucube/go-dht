@@ -1,0 +1,9 @@
+id: "c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b"
+addr: 127.0.0.1
+port: 5003
+adminport: 6003
+knownNodes:
+- id: "1ff734fb9897600ca54a9c55ace2d22a51afb610"
+  addr: 127.0.0.1
+  port: 5002
+storage: "tmp"

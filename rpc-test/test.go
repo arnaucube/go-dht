@@ -14,10 +14,15 @@ import (
 // Utility to test the Node RPC methods
 
 func main() {
+	// public rpc
 	pingFlag := flag.Bool("ping", false, "test Ping")
 	findnodeFlag := flag.Bool("findnode", false, "test FindNode")
 	findvalueFlag := flag.Bool("findvalue", false, "test FindValue")
 	storeFlag := flag.Bool("store", false, "test Store")
+
+	// admin rpc
+	findFlag := flag.Bool("find", false, "test Find")
+
 	flag.Parse()
 
 	if *pingFlag {
@@ -31,6 +36,9 @@ func main() {
 	}
 	if *storeFlag {
 		testStore()
+	}
+	if *findFlag {
+		testFind()
 	}
 }
 
@@ -57,18 +65,13 @@ func testFindNode() {
 	if err != nil {
 		panic(err)
 	}
-	ln := kademlia.ListedNode{
-		ID:   id,
-		Addr: "",
-		Port: "",
-	}
 	client, err := rpc.DialHTTP("tcp", "127.0.0.1:5000")
 	if err != nil {
 		log.Fatal("Connection error: ", err)
 	}
 
 	var reply []kademlia.ListedNode
-	err = client.Call("Node.FindNode", ln, &reply)
+	err = client.Call("Node.FindNode", id, &reply)
 	if err != nil {
 		panic(err)
 	}
@@ -79,14 +82,9 @@ func testFindNode() {
 	if err != nil {
 		panic(err)
 	}
-	ln = kademlia.ListedNode{
-		ID:   id,
-		Addr: "",
-		Port: "",
-	}
 
 	var reply2 []kademlia.ListedNode
-	err = client.Call("Node.FindNode", ln, &reply2)
+	err = client.Call("Node.FindNode", id, &reply2)
 	if err != nil {
 		panic(err)
 	}
@@ -176,4 +174,25 @@ func prepareTestListedNodes() []kademlia.ListedNode {
 		lns = append(lns, lnI)
 	}
 	return lns
+}
+
+// through admin rpc
+func testFind() {
+	client, err := rpc.DialHTTP("tcp", "127.0.0.1:6000")
+	if err != nil {
+		log.Fatal("Connection error: ", err)
+	}
+
+	idStr := "c48d8b53dbefb609ed4e94d386dd5b22efcb2c5b"
+	// idStr := "1ff734fb9897600ca54a9c55ace2d22a51afb610"
+	id, err := kademlia.IDFromString(idStr)
+	if err != nil {
+		panic(err)
+	}
+	var lns []kademlia.ListedNode
+	err = client.Call("Admin.Find", id, &lns)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(lns)
 }

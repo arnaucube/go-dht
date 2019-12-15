@@ -11,6 +11,7 @@ type Config struct {
 	ID            string
 	Addr          string
 	Port          string
+	AdminPort     string
 	KnownNodesStr []KnownNodeStr        `mapstructure:"knownnodes"`
 	KnownNodes    []kademlia.ListedNode `mapstructure:"-"`
 	Storage       string

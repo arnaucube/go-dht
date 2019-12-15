@@ -12,7 +12,37 @@ To run a node:
 go run main.go --config config.test0.yaml --debug start
 ```
 
-To run 3 test nodes inside a tmux session:
+
+## Test
+- Scenario:
+```
++--+           +--+
+|n0+-----------+n1|
++-++           +--+
+  |
+  |
+  |    +--+           +--+
+  +----+n2+-----------+n3|
+       +--+           +--+
+```
+
+- To run 4 test nodes inside a tmux session:
 ```
 bash run-dev-nodes.sh
 ```
+
+Using the `test.go` in the `rpc-test` directory:
+
+- calls to the node to perform lookups
+	- `go run test.go -find`
+		- performs an `admin` call to `Find` node, to the `n0`, asking about the `n3`
+- calls to simulate kademlia protocol rpc calls
+	- `go run test.go -ping`
+		- performs the `PING` call
+	- `go run test.go -findnode`
+		- performs the `FIND_NODE` call
+	- `go run test.go -findvalue`
+		- performs the `FIND_VALUE` call
+	- `go run test.go -store`
+		- performs the `STORE` call
+

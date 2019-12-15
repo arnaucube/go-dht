@@ -152,7 +152,7 @@ func TestFindClosestKBucket(t *testing.T) {
 	idB, err := IDFromString("0fd85ddddf15aeec2d5d8b01b013dbca030a18d5")
 	assert.Nil(t, err)
 
-	k, err := kademlia.FindClosestKBucket(idB)
+	k, err := kademlia.GetClosestKBucket(idB)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, k)
 
@@ -164,7 +164,7 @@ func TestFindClosestKBucket(t *testing.T) {
 	assert.Equal(t, 3, k)
 
 	// while the real KBucket (as the 3 is empty), should be 2
-	k, err = kademlia.FindClosestKBucket(idB)
+	k, err = kademlia.GetClosestKBucket(idB)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, k)
 
@@ -176,7 +176,7 @@ func TestFindClosestKBucket(t *testing.T) {
 	assert.Equal(t, 5, k)
 
 	// while the real KBucket (as the 3 is empty), should be 2
-	k, err = kademlia.FindClosestKBucket(idB)
+	k, err = kademlia.GetClosestKBucket(idB)
 	assert.Nil(t, err)
 	assert.Equal(t, 7, k)
 }
